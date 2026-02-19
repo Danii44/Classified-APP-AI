@@ -1,0 +1,83 @@
+NEXUSMARKET - ADMIN SETUP GUIDE
+================================
+
+STEP 1: SETUP DATABASE IN SUPABASE
+==================================
+1. Go to Supabase Dashboard → Your Project → SQL Editor
+2. Create NEW QUERY and paste contents of: scripts/01_schema.sql
+3. Run the query (click "Run")
+4. Create ANOTHER query and paste contents of: scripts/02_seed.sql
+5. Run this query too
+
+STEP 2: CREATE ADMIN USER
+==================================
+In Supabase, go to: Authentication → Users
+
+Click "Add user" and create:
+  Email: admin@nexusmarket.ae
+  Password: (create a strong password)
+
+Then go to: Database → profiles table
+
+Find the admin user and UPDATE their role:
+  role → "superadmin"
+
+STEP 3: ENVIRONMENT SETUP
+==================================
+Copy this into your .env.local file:
+
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+Get these values from: Supabase → Project Settings → API
+
+STEP 4: RUN LOCAL APP
+==================================
+Terminal 1 - Web App:
+  pnpm install
+  pnpm dev
+  Visit: http://localhost:3000
+
+STEP 5: LOGIN AS ADMIN
+==================================
+Home Page → Click "Login"
+  Email: admin@nexusmarket.ae
+  Password: (the one you created)
+
+Go to: http://localhost:3000/admin
+You'll see the admin dashboard
+
+STEP 6: TEST FEATURES
+==================================
+✓ Create a product listing
+✓ Upload images
+✓ Search marketplace
+✓ Toggle feature flags in admin
+✓ View user profiles
+
+TROUBLESHOOTING
+==================================
+If you get "Permission Denied" errors:
+  1. Make sure ALL SQL migrations ran successfully
+  2. Check RLS policies are enabled
+  3. Verify SUPABASE_SERVICE_ROLE_KEY is in .env.local
+  4. Clear browser cache and cookies
+
+If metadata API errors appear:
+  ✓ Already fixed in new layout.tsx
+  ✓ Proxy.ts instead of middleware.ts
+  ✓ Viewport separated from metadata
+
+If data doesn't load:
+  1. Run SQL scripts again
+  2. Check database tables exist: products, profiles, product_images
+  3. Verify RLS policies are correct
+
+NEXT STEPS
+==================================
+1. Customize theme colors in globals.css
+2. Add your company logo
+3. Update branding in ADMIN_SETUP.md
+4. Deploy to Vercel
+5. Setup Stripe for payments
