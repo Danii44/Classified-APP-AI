@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Package2, Upload } from 'lucide-react'
+import { Package2, Upload, AlertCircle, CheckCircle, Trash2 } from 'lucide-react'
 
 export default function CreateListingPage() {
   const router = useRouter()
@@ -23,14 +23,18 @@ export default function CreateListingPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<any[]>([])
-  const [countries, setCountries] = useState<any[]>([])
+  const [uploadedImages, setUploadedImages] = useState<File[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
-    currency: 'USD',
     category_id: '',
-    country_id: '',
+    condition: 'good',
+    country: 'AE',
+    city: '',
   })
 
   useEffect(() => {
@@ -46,44 +50,79 @@ export default function CreateListingPage() {
   }, [supabase, router])
 
   useEffect(() => {
-    const fetchMetadata = async () => {
-      const [categoriesRes, countriesRes] = await Promise.all([
-        fetch('/api/metadata?type=categories'),
-        fetch('/api/metadata?type=countries'),
-      ])
+    const fetchCategories = async () => {
+      try {
+        const { data } = await supabase
+          .from('categories')
+          .select('id, category_name, slug')
+          .is('parent_category_id', null)
+          .order('display_order')
 
-      const categoriesData = await categoriesRes.json()
-      const countriesData = await countriesRes.json()
-
-      setCategories(categoriesData)
-      setCountries(countriesData)
+        setCategories(data || [])
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
     }
 
-    fetchMetadata()
-  }, [])
+    fetchCategories()
+  }, [supabase])
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    setUploadedImages([...uploadedImages, ...files].slice(0, 6))
+  }
+
+  const removeImage = (index: number) => {
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setLoading(true)
 
     try {
-      const response = await fetch('/api/listings/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          status: 'active',
-        }),
-      })
-
-      const listing = await response.json()
-
-      if (response.ok) {
-        router.push(`/listings/${listing.id}`)
+      if (!user) {
+        setError('You must be logged in to create a listing')
+        return
       }
-    } catch (error) {
-      console.error('Error creating listing:', error)
+
+      if (!formData.title || !formData.category_id || !formData.price) {
+        setError('Please fill in all required fields')
+        return
+      }
+
+      const { data: listing, error: insertError } = await supabase
+        .from('ads')
+        .insert([
+          {
+            user_id: user.id,
+            category_id: formData.category_id,
+            title: formData.title,
+            description: formData.description,
+            price: parseFloat(formData.price),
+            currency: 'AED',
+            condition: formData.condition,
+            country: formData.country,
+            city: formData.city,
+            status: 'pending',
+          },
+        ])
+        .select()
+
+      if (insertError) {
+        setError(insertError.message || 'Failed to create listing')
+        return
+      }
+
+      const listingId = listing?.[0]?.id
+      setSuccess(true)
+      
+      setTimeout(() => {
+        router.push(`/listing/${listingId}`)
+      }, 2000)
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
     } finally {
       setLoading(false)
     }
@@ -108,6 +147,26 @@ export default function CreateListingPage() {
           <h1 className="text-3xl font-bold text-white mb-2">Create New Listing</h1>
           <p className="text-gray-400 mb-8">Fill in the details to create your marketplace listing</p>
 
+          {success && (
+            <div className="glass border-l-4 border-green-500 p-4 mb-6 rounded-lg flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-white">Listing Created Successfully!</h3>
+                <p className="text-gray-400 text-sm">Redirecting to your listing...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="glass border-l-4 border-red-500 p-4 mb-6 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-white">Error</h3>
+                <p className="text-gray-400 text-sm">{error}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <div>
@@ -123,9 +182,8 @@ export default function CreateListingPage() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
               <Textarea
-                required
                 placeholder="Describe your item in detail"
                 className="bg-slate-700 border-slate-600 text-white min-h-32"
                 value={formData.description}
@@ -133,7 +191,7 @@ export default function CreateListingPage() {
               />
             </div>
 
-            {/* Category & Country */}
+            {/* Category & Condition */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Category *</label>
@@ -144,7 +202,7 @@ export default function CreateListingPage() {
                   <SelectContent>
                     {categories.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                        {c.category_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -152,26 +210,26 @@ export default function CreateListingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Country *</label>
-                <Select value={formData.country_id} onValueChange={(v) => setFormData({ ...formData, country_id: v })}>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Condition</label>
+                <Select value={formData.condition} onValueChange={(v) => setFormData({ ...formData, condition: v })}>
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                    <SelectValue placeholder="Select country" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {countries.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="like_new">Like New</SelectItem>
+                    <SelectItem value="good">Good</SelectItem>
+                    <SelectItem value="fair">Fair</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Price */}
+            {/* Price & Country */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Price *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Price (AED) *</label>
                 <Input
                   required
                   type="number"
@@ -183,37 +241,83 @@ export default function CreateListingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Currency</label>
-                <Select value={formData.currency} onValueChange={(v) => setFormData({ ...formData, currency: v })}>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Country</label>
+                <Select value={formData.country} onValueChange={(v) => setFormData({ ...formData, country: v })}>
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                    <SelectItem value="AUD">AUD</SelectItem>
-                    <SelectItem value="AED">AED</SelectItem>
+                    <SelectItem value="AE">UAE</SelectItem>
+                    <SelectItem value="SA">Saudi Arabia</SelectItem>
+                    <SelectItem value="KW">Kuwait</SelectItem>
+                    <SelectItem value="QA">Qatar</SelectItem>
+                    <SelectItem value="BH">Bahrain</SelectItem>
+                    <SelectItem value="OM">Oman</SelectItem>
+                    <SelectItem value="EG">Egypt</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Upload Area */}
-            <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center">
-              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-400 text-sm">Drag and drop images or click to upload</p>
-              <p className="text-gray-500 text-xs mt-1">Max 5 images, 10MB each</p>
+            {/* City */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">City</label>
+              <Input
+                placeholder="e.g., Dubai"
+                className="bg-slate-700 border-slate-600 text-white"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
             </div>
+
+            {/* Image Upload */}
+            <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center hover:border-blue-500 transition">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+                disabled={uploadedImages.length >= 6}
+              />
+              <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                <Upload className="w-8 h-8 text-gray-400" />
+                <p className="text-gray-300">Click to upload or drag images</p>
+                <p className="text-xs text-gray-500">{uploadedImages.length}/6 images</p>
+              </label>
+            </div>
+
+            {/* Image Previews */}
+            {uploadedImages.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {uploadedImages.map((file, idx) => (
+                  <div key={idx} className="relative rounded-lg overflow-hidden bg-slate-700">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Preview ${idx}`}
+                      className="w-full h-32 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      className="absolute top-1 right-1 p-1 bg-red-600 rounded hover:bg-red-700"
+                    >
+                      <Trash2 className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Submit */}
             <div className="flex gap-4">
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || uploading}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
-                {loading ? 'Creating...' : 'Create Listing'}
+                {loading ? 'Creating...' : uploading ? 'Uploading...' : 'Create Listing'}
               </Button>
               <Link href="/dashboard" className="flex-1">
                 <Button variant="outline" className="w-full border-slate-600 text-gray-300 hover:text-white">

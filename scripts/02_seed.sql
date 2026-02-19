@@ -2,7 +2,7 @@
 -- Insert countries, categories, attributes, and subscription plans
 
 -- ============================================================
--- COUNTRIES & CITIES
+-- COUNTRIES
 -- ============================================================
 
 INSERT INTO countries (country_name, country_code, flag_emoji, currency, currency_symbol, phone_code, display_order)
@@ -13,22 +13,23 @@ VALUES
   ('Qatar', 'QA', '🇶🇦', 'QAR', 'ر.ق', '+974', 4),
   ('Bahrain', 'BH', '🇧🇭', 'BHD', 'د.ب', '+973', 5),
   ('Oman', 'OM', '🇴🇲', 'OMR', 'ر.ع.', '+968', 6),
-  ('Egypt', 'EG', '🇪🇬', 'EGP', '£', '+20', 7);
+  ('Egypt', 'EG', '🇪🇬', 'EGP', '£', '+20', 7)
+ON CONFLICT DO NOTHING;
 
--- Insert UAE Cities
+-- ============================================================
+-- CITIES (UAE)
+-- ============================================================
+
 INSERT INTO cities (country_id, city_name, latitude, longitude)
-SELECT id, city_name, lat, lon FROM (
-  VALUES
-    ('Dubai', 25.2048, 55.2708),
-    ('Abu Dhabi', 24.4539, 54.3773),
-    ('Sharjah', 25.3571, 55.3986),
-    ('Ajman', 25.4164, 55.4437),
-    ('Ras Al Khaimah', 25.7482, 55.9316),
-    ('Fujairah', 25.1242, 56.3345),
-    ('Umm Al Quwain', 25.5648, 55.5582)
-) AS cities(city_name, lat, lon)
-WHERE countries.country_code = 'AE'
-LIMIT (SELECT id FROM countries WHERE country_code = 'AE');
+VALUES
+  ((SELECT id FROM countries WHERE country_code = 'AE'), 'Dubai', 25.2048, 55.2708),
+  ((SELECT id FROM countries WHERE country_code = 'AE'), 'Abu Dhabi', 24.4539, 54.3773),
+  ((SELECT id FROM countries WHERE country_code = 'AE'), 'Sharjah', 25.3571, 55.3986),
+  ((SELECT id FROM countries WHERE country_code = 'AE'), 'Ajman', 25.4164, 55.4437),
+  ((SELECT id FROM countries WHERE country_code = 'AE'), 'Ras Al Khaimah', 25.7482, 55.9316),
+  ((SELECT id FROM countries WHERE country_code = 'AE'), 'Fujairah', 25.1242, 56.3345),
+  ((SELECT id FROM countries WHERE country_code = 'AE'), 'Umm Al Quwain', 25.5648, 55.5582)
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- SUBSCRIPTION PLANS
@@ -38,216 +39,202 @@ INSERT INTO subscription_plans (plan_name, plan_type, price, currency, max_ads, 
 VALUES
   ('Free Plan', 'free', 0, 'AED', 10, 0, 0, 50, 10, 30, '{"ad_posting": true, "messaging": true, "profile": true}'::jsonb, 'Basic free plan'),
   ('Premium', 'premium', 99, 'AED', 50, 5, 5, 35, 5, 30, '{"ad_posting": true, "messaging": true, "profile": true, "priority_support": true, "analytics": true}'::jsonb, 'Premium monthly plan'),
-  ('Premium Plus', 'premium_plus', 299, 'AED', 200, 20, 20, 25, 2, 30, '{"ad_posting": true, "messaging": true, "profile": true, "priority_support": true, "analytics": true, "featured_badge": true, "bulk_upload": true}'::jsonb, 'Premium Plus monthly plan');
+  ('Premium Plus', 'premium_plus', 299, 'AED', 200, 20, 20, 25, 2, 30, '{"ad_posting": true, "messaging": true, "profile": true, "priority_support": true, "analytics": true, "featured_badge": true, "bulk_upload": true}'::jsonb, 'Premium Plus monthly plan')
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
--- CATEGORIES & SUBCATEGORIES
--- ============================================================
-
 -- MAIN CATEGORIES
-
--- 1. PROPERTIES
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Properties', 'properties', '🏠', 'Real estate for rent and sale', NULL, 1);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'properties'), cat_order FROM (
-  VALUES
-    ('Villas', 'villas', '🏡', 'Luxury villas', 1),
-    ('Apartments', 'apartments', '🏢', 'Flats and apartments', 2),
-    ('Townhouses', 'townhouses', '🏘️', 'Townhouses', 3),
-    ('Penthouses', 'penthouses', '🏰', 'Luxury penthouses', 4),
-    ('Warehouses', 'warehouses', '🏭', 'Industrial spaces', 5),
-    ('Shops', 'shops', '🏪', 'Retail spaces', 6),
-    ('Land', 'land', '🌾', 'Land plots', 7),
-    ('Offices', 'offices', '🏛️', 'Office spaces', 8)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7),(8)) AS t(n));
-
--- 2. VEHICLES
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Vehicles', 'vehicles', '🚗', 'Cars, bikes, and automobiles', NULL, 2);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'vehicles'), cat_order FROM (
-  VALUES
-    ('Cars', 'cars', '🚙', 'Sedans, SUVs, hatchbacks', 1),
-    ('Motorcycles', 'motorcycles', '🏍️', 'Bikes and scooters', 2),
-    ('Trucks', 'trucks', '🚚', 'Commercial vehicles', 3),
-    ('Vans', 'vans', '🚐', 'Minivans and vans', 4),
-    ('Buses', 'buses', '🚌', 'Coaches and buses', 5),
-    ('Auto Parts', 'auto_parts', '⚙️', 'Car parts and accessories', 6),
-    ('Trailers', 'trailers', '🚛', 'Trailers and caravans', 7)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7)) AS t(n));
-
--- 3. ELECTRONICS
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Electronics', 'electronics', '📱', 'Phones, computers, and gadgets', NULL, 3);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'electronics'), cat_order FROM (
-  VALUES
-    ('Smartphones', 'smartphones', '📱', 'Mobile phones', 1),
-    ('Laptops', 'laptops', '💻', 'Computers and laptops', 2),
-    ('Tablets', 'tablets', '📱', 'iPad and tablets', 3),
-    ('Cameras', 'cameras', '📷', 'DSLR and mirrorless', 4),
-    ('Audio', 'audio', '🎧', 'Headphones and speakers', 5),
-    ('Gaming', 'gaming', '🎮', 'Gaming consoles', 6),
-    ('Watches', 'watches', '⌚', 'Smart watches', 7),
-    ('Accessories', 'accessories', '🔌', 'Chargers, cables, cases', 8)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7),(8)) AS t(n));
-
--- 4. FURNITURE & HOME
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Furniture & Home', 'furniture_home', '🪑', 'Furniture and home items', NULL, 4);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'furniture_home'), cat_order FROM (
-  VALUES
-    ('Sofas', 'sofas', '🛋️', 'Couches and sofas', 1),
-    ('Beds', 'beds', '🛏️', 'Beds and mattresses', 2),
-    ('Dining Sets', 'dining', '🍽️', 'Tables and chairs', 3),
-    ('Wardrobes', 'wardrobes', '🚪', 'Cabinets and wardrobes', 4),
-    ('Kitchen', 'kitchen', '🍳', 'Kitchen appliances', 5),
-    ('Lighting', 'lighting', '💡', 'Lamps and lights', 6),
-    ('Decor', 'decor', '🖼️', 'Wall art and decoration', 7),
-    ('Plants', 'plants', '🌿', 'Indoor plants', 8)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7),(8)) AS t(n));
-
--- 5. FASHION & CLOTHING
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Fashion & Clothing', 'fashion', '👗', 'Clothes, shoes, and accessories', NULL, 5);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'fashion'), cat_order FROM (
-  VALUES
-    ('Mens Clothing', 'mens', '👔', 'Shirts, pants, jackets', 1),
-    ('Womens Clothing', 'womens', '👚', 'Dresses, tops, skirts', 2),
-    ('Shoes', 'shoes', '👞', 'Sneakers, heels, boots', 3),
-    ('Bags', 'bags', '👜', 'Handbags and backpacks', 4),
-    ('Jewelry', 'jewelry', '💍', 'Rings, necklaces, earrings', 5),
-    ('Watches', 'watches_fashion', '⌚', 'Wristwatches', 6),
-    ('Accessories', 'fashion_accessories', '🧣', 'Scarves, hats, belts', 7),
-    ('Sports Wear', 'sportswear', '👟', 'Gym and athletic wear', 8)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7),(8)) AS t(n));
-
--- 6. PETS & ANIMALS
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Pets & Animals', 'pets', '🐕', 'Pets and animal supplies', NULL, 6);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'pets'), cat_order FROM (
-  VALUES
-    ('Dogs', 'dogs', '🐕', 'Dogs for sale/adoption', 1),
-    ('Cats', 'cats', '🐈', 'Cats for sale/adoption', 2),
-    ('Birds', 'birds', '🦜', 'Birds and aviary', 3),
-    ('Fish', 'fish', '🐠', 'Aquatic pets', 4),
-    ('Rabbits', 'rabbits', '🐰', 'Rabbits and rodents', 5),
-    ('Pet Supplies', 'supplies', '🦴', 'Food, toys, beds', 6),
-    ('Pet Services', 'services', '✂️', 'Grooming, training', 7)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7)) AS t(n));
-
--- 7. SPORTS & OUTDOORS
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Sports & Outdoors', 'sports', '⚽', 'Sports equipment and outdoor gear', NULL, 7);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'sports'), cat_order FROM (
-  VALUES
-    ('Fitness Equipment', 'fitness', '🏋️', 'Weights, treadmills', 1),
-    ('Sports Gear', 'gear', '⚽', 'Balls, rackets, bats', 2),
-    ('Bicycles', 'bicycles', '🚴', 'Bikes and scooters', 3),
-    ('Camping', 'camping', '⛺', 'Tents, bags, gear', 4),
-    ('Water Sports', 'water', '🏄', 'Surfboards, diving', 5),
-    ('Team Sports', 'team', '🏀', 'Basketball, football', 6),
-    ('Outdoor Gear', 'outdoor', '🧗', 'Climbing, hiking gear', 7)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7)) AS t(n));
-
--- 8. SERVICES & JOBS
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-VALUES ('Services & Jobs', 'services', '🔧', 'Services, jobs, and opportunities', NULL, 8);
-
-INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
-SELECT id, cat_slug, cat_icon, cat_desc, (SELECT id FROM categories WHERE slug = 'services'), cat_order FROM (
-  VALUES
-    ('Repair Services', 'repair', '🔧', 'Electronics, auto repair', 1),
-    ('Home Services', 'home_services', '🏠', 'Cleaning, plumbing', 2),
-    ('Beauty Services', 'beauty', '💅', 'Salon, spa, massage', 3),
-    ('Teaching', 'teaching', '📚', 'Tutoring and lessons', 4),
-    ('Jobs Offered', 'jobs', '💼', 'Job postings', 5),
-    ('Jobs Wanted', 'job_wanted', '📋', 'Job seekers', 6),
-    ('Event Services', 'events', '🎉', 'Catering, photography', 7)
-) AS subcats(cat_slug, cat_icon, cat_desc, cat_order)
-LIMIT (SELECT COUNT(*) FROM (VALUES (1),(2),(3),(4),(5),(6),(7)) AS t(n));
-
--- ============================================================
--- CATEGORY ATTRIBUTES (EAV Model)
 -- ============================================================
 
--- Properties attributes
-INSERT INTO category_attributes (category_id, attribute_name, attribute_type, is_required, dropdown_values, unit)
-SELECT id, attr_name, attr_type, attr_req, attr_vals, attr_unit
-FROM (
-  SELECT (SELECT id FROM categories WHERE slug = 'villas') as cat_id,
-    JSONB_BUILD_OBJECT(
-      ('Bedrooms'::text, 'number'::text, true, NULL::jsonb, NULL::text),
-      ('Bathrooms', 'number', true, NULL, NULL),
-      ('Size', 'number', true, NULL, 'sqft'),
-      ('Property Type', 'dropdown', true, '["Villa", "Townhouse", "Mansion"]'::jsonb, NULL),
-      ('Features', 'multiselect', false, '["Pool", "Gym", "Garden", "Parking"]'::jsonb, NULL),
-      ('Furnished', 'dropdown', false, '["Yes", "Partial", "No"]'::jsonb, NULL),
-      ('Amenities', 'multiselect', false, '["Air Conditioning", "Balcony", "Elevator", "Generator"]'::jsonb, NULL)
-    ) as attrs
-) subq
-CROSS JOIN LATERAL JSONB_EACH(attrs) AS x(attr_name, attr_val)
-WHERE x.attr_val->>'type' IS NOT NULL;
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Properties', 'properties', '🏠', 'Real estate for rent and sale', NULL, 1),
+  ('Vehicles', 'vehicles', '🚗', 'Cars, bikes, and automobiles', NULL, 2),
+  ('Electronics', 'electronics', '📱', 'Phones, computers, and gadgets', NULL, 3),
+  ('Furniture & Home', 'furniture_home', '🪑', 'Furniture and home items', NULL, 4),
+  ('Fashion & Clothing', 'fashion', '👗', 'Clothes, shoes, and accessories', NULL, 5),
+  ('Pets & Animals', 'pets', '🐕', 'Pets and animal supplies', NULL, 6),
+  ('Sports & Outdoors', 'sports', '⚽', 'Sports equipment and outdoor gear', NULL, 7),
+  ('Services & Jobs', 'services', '🔧', 'Services, jobs, and opportunities', NULL, 8)
+ON CONFLICT DO NOTHING;
 
--- Vehicles (Cars) attributes
-INSERT INTO category_attributes (category_id, attribute_name, attribute_type, is_required, dropdown_values, unit)
-SELECT id, attr_name, attr_type, attr_req, attr_vals, attr_unit
-FROM (
-  SELECT (SELECT id FROM categories WHERE slug = 'cars') as cat_id,
-    JSONB_BUILD_ARRAY(
-      JSONB_BUILD_OBJECT('name', 'Brand', 'type', 'dropdown', 'required', true, 'values', '["Toyota", "BMW", "Audi", "Mercedes", "Nissan", "Ford", "Honda", "Volkswagen", "Hyundai", "Kia", "Other"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Model', 'type', 'text', 'required', true),
-      JSONB_BUILD_OBJECT('name', 'Year', 'type', 'number', 'required', true, 'min', 1990, 'max', 2025),
-      JSONB_BUILD_OBJECT('name', 'Mileage', 'type', 'number', 'required', true, 'unit', 'km'),
-      JSONB_BUILD_OBJECT('name', 'Transmission', 'type', 'dropdown', 'required', true, 'values', '["Automatic", "Manual"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Fuel Type', 'type', 'dropdown', 'required', true, 'values', '["Petrol", "Diesel", "Hybrid", "Electric"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Color', 'type', 'dropdown', 'required', false, 'values', '["White", "Black", "Silver", "Gray", "Red", "Blue", "Gold", "Brown", "Green"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Body Type', 'type', 'dropdown', 'required', true, 'values', '["Sedan", "SUV", "Coupe", "Hatchback", "Wagon", "Convertible", "Minivan", "Pickup", "Truck"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Features', 'type', 'multiselect', 'required', false, 'values', '["Air Conditioning", "Power Steering", "ABS", "Airbags", "Sunroof", "Alloy Wheels", "Navigation", "Cruise Control", "Parking Sensors"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Owner Type', 'type', 'dropdown', 'required', false, 'values', '["Personal Use", "Taxi", "Rental"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Service History', 'type', 'dropdown', 'required', false, 'values', '["Full Service History", "Partial", "No History"]'::jsonb)
-    ) as attrs
-) subq, LATERAL JSONB_ARRAY_ELEMENTS(attrs) AS x(attr_obj)
-WHERE TRUE;
+-- ============================================================
+-- SUBCATEGORIES - PROPERTIES
+-- ============================================================
 
--- Electronics (Smartphones) attributes
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Villas', 'villas', '🏡', 'Luxury villas', (SELECT id FROM categories WHERE slug = 'properties'), 1),
+  ('Apartments', 'apartments', '🏢', 'Flats and apartments', (SELECT id FROM categories WHERE slug = 'properties'), 2),
+  ('Townhouses', 'townhouses', '🏘️', 'Townhouses', (SELECT id FROM categories WHERE slug = 'properties'), 3),
+  ('Penthouses', 'penthouses', '🏰', 'Luxury penthouses', (SELECT id FROM categories WHERE slug = 'properties'), 4),
+  ('Warehouses', 'warehouses', '🏭', 'Industrial spaces', (SELECT id FROM categories WHERE slug = 'properties'), 5),
+  ('Shops', 'shops', '🏪', 'Retail spaces', (SELECT id FROM categories WHERE slug = 'properties'), 6),
+  ('Land', 'land', '🌾', 'Land plots', (SELECT id FROM categories WHERE slug = 'properties'), 7),
+  ('Offices', 'offices', '🏛️', 'Office spaces', (SELECT id FROM categories WHERE slug = 'properties'), 8)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- SUBCATEGORIES - VEHICLES
+-- ============================================================
+
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Cars', 'cars', '🚙', 'Sedans, SUVs, hatchbacks', (SELECT id FROM categories WHERE slug = 'vehicles'), 1),
+  ('Motorcycles', 'motorcycles', '🏍️', 'Bikes and scooters', (SELECT id FROM categories WHERE slug = 'vehicles'), 2),
+  ('Trucks', 'trucks', '🚚', 'Commercial vehicles', (SELECT id FROM categories WHERE slug = 'vehicles'), 3),
+  ('Vans', 'vans', '🚐', 'Minivans and vans', (SELECT id FROM categories WHERE slug = 'vehicles'), 4),
+  ('Buses', 'buses', '🚌', 'Coaches and buses', (SELECT id FROM categories WHERE slug = 'vehicles'), 5),
+  ('Auto Parts', 'auto_parts', '⚙️', 'Car parts and accessories', (SELECT id FROM categories WHERE slug = 'vehicles'), 6),
+  ('Trailers', 'trailers', '🚛', 'Trailers and caravans', (SELECT id FROM categories WHERE slug = 'vehicles'), 7)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- SUBCATEGORIES - ELECTRONICS
+-- ============================================================
+
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Smartphones', 'smartphones', '📱', 'Mobile phones', (SELECT id FROM categories WHERE slug = 'electronics'), 1),
+  ('Laptops', 'laptops', '💻', 'Computers and laptops', (SELECT id FROM categories WHERE slug = 'electronics'), 2),
+  ('Tablets', 'tablets', '📱', 'iPad and tablets', (SELECT id FROM categories WHERE slug = 'electronics'), 3),
+  ('Cameras', 'cameras', '📷', 'DSLR and mirrorless', (SELECT id FROM categories WHERE slug = 'electronics'), 4),
+  ('Audio', 'audio', '🎧', 'Headphones and speakers', (SELECT id FROM categories WHERE slug = 'electronics'), 5),
+  ('Gaming', 'gaming', '🎮', 'Gaming consoles', (SELECT id FROM categories WHERE slug = 'electronics'), 6),
+  ('Watches', 'watches', '⌚', 'Smart watches', (SELECT id FROM categories WHERE slug = 'electronics'), 7),
+  ('Accessories', 'accessories', '🔌', 'Chargers, cables, cases', (SELECT id FROM categories WHERE slug = 'electronics'), 8)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- SUBCATEGORIES - FURNITURE & HOME
+-- ============================================================
+
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Sofas', 'sofas', '🛋️', 'Couches and sofas', (SELECT id FROM categories WHERE slug = 'furniture_home'), 1),
+  ('Beds', 'beds', '🛏️', 'Beds and mattresses', (SELECT id FROM categories WHERE slug = 'furniture_home'), 2),
+  ('Dining Sets', 'dining', '🍽️', 'Tables and chairs', (SELECT id FROM categories WHERE slug = 'furniture_home'), 3),
+  ('Wardrobes', 'wardrobes', '🚪', 'Cabinets and wardrobes', (SELECT id FROM categories WHERE slug = 'furniture_home'), 4),
+  ('Kitchen', 'kitchen', '🍳', 'Kitchen appliances', (SELECT id FROM categories WHERE slug = 'furniture_home'), 5),
+  ('Lighting', 'lighting', '💡', 'Lamps and lights', (SELECT id FROM categories WHERE slug = 'furniture_home'), 6),
+  ('Decor', 'decor', '🖼️', 'Wall art and decoration', (SELECT id FROM categories WHERE slug = 'furniture_home'), 7),
+  ('Plants', 'plants', '🌿', 'Indoor plants', (SELECT id FROM categories WHERE slug = 'furniture_home'), 8)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- SUBCATEGORIES - FASHION
+-- ============================================================
+
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Mens Clothing', 'mens', '👔', 'Shirts, pants, jackets', (SELECT id FROM categories WHERE slug = 'fashion'), 1),
+  ('Womens Clothing', 'womens', '👚', 'Dresses, tops, skirts', (SELECT id FROM categories WHERE slug = 'fashion'), 2),
+  ('Shoes', 'shoes', '👞', 'Sneakers, heels, boots', (SELECT id FROM categories WHERE slug = 'fashion'), 3),
+  ('Bags', 'bags', '👜', 'Handbags and backpacks', (SELECT id FROM categories WHERE slug = 'fashion'), 4),
+  ('Jewelry', 'jewelry', '💍', 'Rings, necklaces, earrings', (SELECT id FROM categories WHERE slug = 'fashion'), 5),
+  ('Watches', 'watches_fashion', '⌚', 'Wristwatches', (SELECT id FROM categories WHERE slug = 'fashion'), 6),
+  ('Accessories', 'fashion_accessories', '🧣', 'Scarves, hats, belts', (SELECT id FROM categories WHERE slug = 'fashion'), 7),
+  ('Sports Wear', 'sportswear', '👟', 'Gym and athletic wear', (SELECT id FROM categories WHERE slug = 'fashion'), 8)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- SUBCATEGORIES - PETS
+-- ============================================================
+
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Dogs', 'dogs', '🐕', 'Dogs for sale/adoption', (SELECT id FROM categories WHERE slug = 'pets'), 1),
+  ('Cats', 'cats', '🐈', 'Cats for sale/adoption', (SELECT id FROM categories WHERE slug = 'pets'), 2),
+  ('Birds', 'birds', '🦜', 'Birds and aviary', (SELECT id FROM categories WHERE slug = 'pets'), 3),
+  ('Fish', 'fish', '🐠', 'Aquatic pets', (SELECT id FROM categories WHERE slug = 'pets'), 4),
+  ('Rabbits', 'rabbits', '🐰', 'Rabbits and rodents', (SELECT id FROM categories WHERE slug = 'pets'), 5),
+  ('Pet Supplies', 'supplies', '🦴', 'Food, toys, beds', (SELECT id FROM categories WHERE slug = 'pets'), 6),
+  ('Pet Services', 'services_pets', '✂️', 'Grooming, training', (SELECT id FROM categories WHERE slug = 'pets'), 7)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- SUBCATEGORIES - SPORTS
+-- ============================================================
+
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Fitness Equipment', 'fitness', '🏋️', 'Weights, treadmills', (SELECT id FROM categories WHERE slug = 'sports'), 1),
+  ('Sports Gear', 'gear', '⚽', 'Balls, rackets, bats', (SELECT id FROM categories WHERE slug = 'sports'), 2),
+  ('Bicycles', 'bicycles', '🚴', 'Bikes and scooters', (SELECT id FROM categories WHERE slug = 'sports'), 3),
+  ('Camping', 'camping', '⛺', 'Tents, bags, gear', (SELECT id FROM categories WHERE slug = 'sports'), 4),
+  ('Water Sports', 'water', '🏄', 'Surfboards, diving', (SELECT id FROM categories WHERE slug = 'sports'), 5),
+  ('Team Sports', 'team', '🏀', 'Basketball, football', (SELECT id FROM categories WHERE slug = 'sports'), 6),
+  ('Outdoor Gear', 'outdoor', '🧗', 'Climbing, hiking gear', (SELECT id FROM categories WHERE slug = 'sports'), 7)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- SUBCATEGORIES - SERVICES
+-- ============================================================
+
+INSERT INTO categories (category_name, slug, icon, description, parent_category_id, display_order)
+VALUES
+  ('Repair Services', 'repair', '🔧', 'Electronics, auto repair', (SELECT id FROM categories WHERE slug = 'services'), 1),
+  ('Home Services', 'home_services', '🏠', 'Cleaning, plumbing', (SELECT id FROM categories WHERE slug = 'services'), 2),
+  ('Beauty Services', 'beauty', '💅', 'Salon, spa, massage', (SELECT id FROM categories WHERE slug = 'services'), 3),
+  ('Teaching', 'teaching', '📚', 'Tutoring and lessons', (SELECT id FROM categories WHERE slug = 'services'), 4),
+  ('Jobs Offered', 'jobs', '💼', 'Job postings', (SELECT id FROM categories WHERE slug = 'services'), 5),
+  ('Jobs Wanted', 'job_wanted', '📋', 'Job seekers', (SELECT id FROM categories WHERE slug = 'services'), 6),
+  ('Event Services', 'events', '🎉', 'Catering, photography', (SELECT id FROM categories WHERE slug = 'services'), 7)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- CATEGORY ATTRIBUTES - PROPERTIES
+-- ============================================================
+
 INSERT INTO category_attributes (category_id, attribute_name, attribute_type, is_required, dropdown_values, unit)
-SELECT id, attr_name, attr_type, attr_req, attr_vals, attr_unit
-FROM (
-  SELECT (SELECT id FROM categories WHERE slug = 'smartphones') as cat_id,
-    JSONB_BUILD_ARRAY(
-      JSONB_BUILD_OBJECT('name', 'Brand', 'type', 'dropdown', 'required', true, 'values', '["Apple", "Samsung", "Xiaomi", "OnePlus", "Huawei", "Google", "Realme", "Oppo", "Vivo", "Honor", "Other"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Model', 'type', 'text', 'required', true),
-      JSONB_BUILD_OBJECT('name', 'Storage', 'type', 'dropdown', 'required', true, 'values', '["64GB", "128GB", "256GB", "512GB", "1TB"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'RAM', 'type', 'dropdown', 'required', true, 'values', '["4GB", "6GB", "8GB", "12GB", "16GB"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Color', 'type', 'text', 'required', false),
-      JSONB_BUILD_OBJECT('name', 'Screen Size', 'type', 'number', 'required', false, 'unit', 'inches'),
-      JSONB_BUILD_OBJECT('name', 'Camera MP', 'type', 'number', 'required', false, 'unit', 'MP'),
-      JSONB_BUILD_OBJECT('name', 'Battery', 'type', 'number', 'required', false, 'unit', 'mAh'),
-      JSONB_BUILD_OBJECT('name', 'Condition', 'type', 'dropdown', 'required', true, 'values', '["New Sealed", "Like New", "Good", "Fair", "Parts Only"]'::jsonb),
-      JSONB_BUILD_OBJECT('name', 'Warranty', 'type', 'dropdown', 'required', false, 'values', '["Yes", "No", "Partial"]'::jsonb)
-    ) as attrs
-) subq, LATERAL JSONB_ARRAY_ELEMENTS(attrs) AS x(attr_obj)
-WHERE TRUE;
+VALUES
+  ((SELECT id FROM categories WHERE slug = 'villas'), 'Bedrooms', 'number', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'villas'), 'Bathrooms', 'number', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'villas'), 'Size', 'number', true, NULL, 'sqft'),
+  ((SELECT id FROM categories WHERE slug = 'villas'), 'Property Type', 'dropdown', true, '["Villa", "Townhouse", "Mansion"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'villas'), 'Features', 'multiselect', false, '["Pool", "Gym", "Garden", "Parking"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'villas'), 'Furnished', 'dropdown', false, '["Yes", "Partial", "No"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'apartments'), 'Bedrooms', 'number', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'apartments'), 'Bathrooms', 'number', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'apartments'), 'Size', 'number', true, NULL, 'sqft'),
+  ((SELECT id FROM categories WHERE slug = 'apartments'), 'Floor', 'number', false, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'apartments'), 'Furnished', 'dropdown', false, '["Yes", "Partial", "No"]'::jsonb, NULL)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- CATEGORY ATTRIBUTES - VEHICLES
+-- ============================================================
+
+INSERT INTO category_attributes (category_id, attribute_name, attribute_type, is_required, dropdown_values, unit)
+VALUES
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Brand', 'dropdown', true, '["Toyota", "BMW", "Audi", "Mercedes", "Nissan", "Ford", "Honda", "Volkswagen", "Hyundai", "Kia", "Other"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Model', 'text', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Year', 'number', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Mileage', 'number', true, NULL, 'km'),
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Transmission', 'dropdown', true, '["Automatic", "Manual"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Fuel Type', 'dropdown', true, '["Petrol", "Diesel", "Hybrid", "Electric"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Color', 'dropdown', false, '["White", "Black", "Silver", "Gray", "Red", "Blue", "Gold", "Brown", "Green"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'cars'), 'Body Type', 'dropdown', true, '["Sedan", "SUV", "Coupe", "Hatchback", "Wagon", "Convertible", "Minivan", "Pickup", "Truck"]'::jsonb, NULL)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- CATEGORY ATTRIBUTES - ELECTRONICS
+-- ============================================================
+
+INSERT INTO category_attributes (category_id, attribute_name, attribute_type, is_required, dropdown_values, unit)
+VALUES
+  ((SELECT id FROM categories WHERE slug = 'smartphones'), 'Brand', 'dropdown', true, '["Apple", "Samsung", "Xiaomi", "OnePlus", "Huawei", "Google", "Realme", "Oppo", "Vivo", "Honor", "Other"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'smartphones'), 'Model', 'text', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'smartphones'), 'Storage', 'dropdown', true, '["64GB", "128GB", "256GB", "512GB", "1TB"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'smartphones'), 'RAM', 'dropdown', true, '["4GB", "6GB", "8GB", "12GB", "16GB"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'smartphones'), 'Condition', 'dropdown', true, '["New Sealed", "Like New", "Good", "Fair", "Parts Only"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'smartphones'), 'Warranty', 'dropdown', false, '["Yes", "No", "Partial"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'laptops'), 'Brand', 'dropdown', true, '["Apple", "Dell", "HP", "Lenovo", "ASUS", "Acer", "MSI", "Razer", "Other"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'laptops'), 'Model', 'text', true, NULL, NULL),
+  ((SELECT id FROM categories WHERE slug = 'laptops'), 'RAM', 'dropdown', true, '["8GB", "16GB", "32GB", "64GB"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'laptops'), 'Storage', 'dropdown', true, '["256GB", "512GB", "1TB", "2TB"]'::jsonb, NULL),
+  ((SELECT id FROM categories WHERE slug = 'laptops'), 'Condition', 'dropdown', true, '["New", "Like New", "Good", "Fair"]'::jsonb, NULL)
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- WEBSITE SETTINGS
@@ -269,13 +256,5 @@ VALUES
   ('max_ads_free_plan', '10', 'number', 'Max ads for free users'),
   ('enable_phone_verification', 'true', 'boolean', 'Require phone verification'),
   ('enable_email_verification', 'true', 'boolean', 'Require email verification'),
-  ('maintenance_mode', 'false', 'boolean', 'Put site in maintenance mode');
-
--- ============================================================
--- SAMPLE ADMIN USER (change password after first login!)
--- ============================================================
-
--- Note: You need to create admin user via Supabase Auth first
--- Then use the following to set admin role:
--- INSERT INTO admin_users (id, role, permissions)
--- VALUES ('<admin_uuid>', 'superadmin', '{"all": true}'::jsonb);
+  ('maintenance_mode', 'false', 'boolean', 'Put site in maintenance mode')
+ON CONFLICT DO NOTHING;

@@ -93,18 +93,24 @@ export function Header() {
               Home
             </Button>
           </Link>
+          <Link href="/browse">
+            <Button variant="ghost" className="gap-2">
+              <Search size={18} />
+              Browse
+            </Button>
+          </Link>
+          <Link href="/sell">
+            <Button variant="ghost" className="gap-2">
+              <Plus size={18} />
+              Sell
+            </Button>
+          </Link>
           {user && (
             <>
               <Link href="/messages">
                 <Button variant="ghost" className="gap-2">
                   <MessageCircle size={18} />
                   Messages
-                </Button>
-              </Link>
-              <Link href="/listings/create">
-                <Button variant="ghost" className="gap-2">
-                  <Plus size={18} />
-                  Post Ad
                 </Button>
               </Link>
             </>
@@ -175,16 +181,22 @@ export function Header() {
                             Home
                           </Button>
                         </Link>
+                        <Link href="/browse" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start gap-2">
+                            <Search size={18} />
+                            Browse
+                          </Button>
+                        </Link>
+                        <Link href="/sell" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start gap-2">
+                            <Plus size={18} />
+                            Sell
+                          </Button>
+                        </Link>
                         <Link href="/messages" onClick={() => setMobileMenuOpen(false)}>
                           <Button variant="ghost" className="w-full justify-start gap-2">
                             <MessageCircle size={18} />
                             Messages
-                          </Button>
-                        </Link>
-                        <Link href="/listings/create" onClick={() => setMobileMenuOpen(false)}>
-                          <Button variant="ghost" className="w-full justify-start gap-2">
-                            <Plus size={18} />
-                            Post Ad
                           </Button>
                         </Link>
                         <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
@@ -250,6 +262,18 @@ export function Header() {
                           <Button variant="ghost" className="w-full justify-start gap-2">
                             <Home size={18} />
                             Home
+                          </Button>
+                        </Link>
+                        <Link href="/browse" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start gap-2">
+                            <Search size={18} />
+                            Browse
+                          </Button>
+                        </Link>
+                        <Link href="/sell" onClick={() => setMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start gap-2">
+                            <Plus size={18} />
+                            Sell
                           </Button>
                         </Link>
                         <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
