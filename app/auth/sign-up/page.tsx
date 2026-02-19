@@ -36,19 +36,75 @@ export default function Page() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Sign up user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo:
             process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/protected`,
+            `${window.location.origin}/auth/login`,
         },
       })
-      if (error) throw error
+
+      if (signUpError) throw signUpError
+      if (!authData.user) throw new Error('Failed to create user')
+
+      // Create user record in users table
+      const { error: userError } = await supabase
+        .from('users')
+        .insert([
+          {
+            id: authData.user.id,
+            email: email,
+            user_type: 'individual',
+            subscription_status: 'free',
+            subscription_plan: 'free',
+            verified_email: false,
+            country: 'AE',
+          },
+        ])
+
+      if (userError) {
+        console.warn('User record creation warning:', userError)
+        // Continue even if user record fails - auth is already created
+      }
+
+      // Create user profile
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert([
+          {
+            id: authData.user.id,
+            country: 'AE',
+            average_rating: 5.0,
+          },
+        ])
+
+      if (profileError) {
+        console.warn('Profile creation warning:', profileError)
+        // Continue even if profile fails - auth is already created
+      }
+
+      // Create wallet for user
+      const { error: walletError } = await supabase
+        .from('user_wallets')
+        .insert([
+          {
+            user_id: authData.user.id,
+            balance: 0,
+            currency: 'AED',
+          },
+        ])
+
+      if (walletError) {
+        console.warn('Wallet creation warning:', walletError)
+        // Continue even if wallet fails
+      }
+
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(error instanceof Error ? error.message : 'An error occurred during sign up')
     } finally {
       setIsLoading(false)
     }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import RootLayoutClient from './layout-client'
+import { Header } from '@/components/header'
 import './globals.css'
 
 const _geist = Geist({ subsets: ['latin'] })
@@ -40,7 +41,10 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <RootLayoutClient>
-          {children}
+          <Header />
+          <main className="min-h-screen">
+            {children}
+          </main>
         </RootLayoutClient>
       </body>
     </html>

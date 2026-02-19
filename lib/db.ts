@@ -1,82 +1,103 @@
 import { createClient } from '@/lib/supabase/server'
 
 export async function initializeDatabase() {
-  const supabase = createClient()
-  const { data, error } = await supabase.rpc('get_user_stats')
-  if (error) console.error('DB init error:', error)
-  return data
+  const supabase = await createClient()
+  try {
+    const { data, error } = await supabase.rpc('get_user_stats')
+    if (error) console.error('DB init error:', error)
+    return data
+  } catch (error) {
+    console.error('Database initialization error:', error)
+    return null
+  }
 }
 
 export async function getCountries() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('countries')
     .select('*')
     .eq('is_active', true)
+    .order('display_order', { ascending: true })
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('Error fetching countries:', error)
+    return []
+  }
+  return data || []
 }
 
 export async function getCategories() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('categories')
     .select('*')
     .eq('is_active', true)
-    .order('sort_order', { ascending: true })
+    .order('display_order', { ascending: true })
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('Error fetching categories:', error)
+    return []
+  }
+  return data || []
 }
 
 export async function getCategoryAttributes(categoryId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('category_attributes')
     .select('*')
     .eq('category_id', categoryId)
+    .order('display_order', { ascending: true })
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('Error fetching category attributes:', error)
+    return []
+  }
+  return data || []
 }
 
 export async function getUserProfile(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('profiles')
+    .from('user_profiles')
     .select('*')
     .eq('id', userId)
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching user profile:', error)
+    return null
+  }
   return data
 }
 
 export async function updateUserProfile(userId: string, updates: any) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('profiles')
+    .from('user_profiles')
     .update(updates)
     .eq('id', userId)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error updating user profile:', error)
+    throw error
+  }
   return data
 }
 
 export async function getListings(filters?: any) {
-  const supabase = createClient()
+  const supabase = await createClient()
   let query = supabase
-    .from('listings')
-    .select('*, listing_media(*), profiles(first_name, last_name, avatar_url)')
+    .from('ads')
+    .select('*, ad_images(*), users(first_name, last_name, avatar_url, email)')
     .eq('status', 'active')
-    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
-  if (filters?.countryId) {
-    query = query.eq('country_id', filters.countryId)
+  if (filters?.country) {
+    query = query.eq('country', filters.country)
   }
   if (filters?.categoryId) {
     query = query.eq('category_id', filters.categoryId)
@@ -92,154 +113,188 @@ export async function getListings(filters?: any) {
       `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
     )
   }
-  if (filters?.limit) {
-    query = query.limit(filters.limit)
-  } else {
-    query = query.limit(20)
-  }
+
+  const limit = filters?.limit || 20
+  query = query.limit(limit)
 
   const { data, error } = await query
-  if (error) throw error
-  return data
+  
+  if (error) {
+    console.error('Error fetching listings:', error)
+    return []
+  }
+  return data || []
 }
 
-export async function getListingById(listingId: string) {
-  const supabase = createClient()
+export async function getListingById(adId: string) {
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('listings')
-    .select('*, listing_media(*), profiles(first_name, last_name, avatar_url, role), reviews(*)')
-    .eq('id', listingId)
+    .from('ads')
+    .select('*, ad_images(*), users(first_name, last_name, avatar_url, email), reviews(*)')
+    .eq('id', adId)
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching listing:', error)
+    return null
+  }
   return data
 }
 
 export async function createListing(listingData: any) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('listings')
+    .from('ads')
     .insert([listingData])
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error creating listing:', error)
+    throw error
+  }
   return data
 }
 
-export async function updateListing(listingId: string, updates: any) {
-  const supabase = createClient()
+export async function updateListing(adId: string, updates: any) {
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('listings')
+    .from('ads')
     .update(updates)
-    .eq('id', listingId)
+    .eq('id', adId)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error updating listing:', error)
+    throw error
+  }
   return data
 }
 
-export async function deleteListing(listingId: string) {
-  const supabase = createClient()
+export async function deleteListing(adId: string) {
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('listings')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', listingId)
+    .from('ads')
+    .update({ status: 'inactive' })
+    .eq('id', adId)
     .select()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error deleting listing:', error)
+    throw error
+  }
   return data
 }
 
-export async function uploadMedia(listingId: string, file: File) {
-  const supabase = createClient()
-  const filename = `${listingId}/${Date.now()}-${file.name}`
+export async function uploadMedia(adId: string, file: File) {
+  const supabase = await createClient()
+  const filename = `${adId}/${Date.now()}-${file.name}`
 
   const { data, error } = await supabase.storage
-    .from('listings')
+    .from('ads')
     .upload(filename, file)
 
-  if (error) throw error
+  if (error) {
+    console.error('Error uploading file:', error)
+    throw error
+  }
 
-  const { data: urlData } = supabase.storage.from('listings').getPublicUrl(filename)
+  const { data: urlData } = supabase.storage.from('ads').getPublicUrl(filename)
 
   const { data: mediaData, error: mediaError } = await supabase
-    .from('listing_media')
+    .from('ad_images')
     .insert([
       {
-        listing_id: listingId,
-        url: urlData.publicUrl,
-        media_type: file.type.startsWith('video') ? 'video' : 'image',
+        ad_id: adId,
+        image_url: urlData.publicUrl,
       },
     ])
     .select()
     .single()
 
-  if (mediaError) throw mediaError
+  if (mediaError) {
+    console.error('Error saving media metadata:', mediaError)
+    throw mediaError
+  }
   return mediaData
 }
 
-export async function saveListing(listingId: string, userId: string) {
-  const supabase = createClient()
+export async function saveListing(adId: string, userId: string) {
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('saved_listings')
-    .insert([{ listing_id: listingId, user_id: userId }])
+    .from('saved_ads')
+    .insert([{ ad_id: adId, user_id: userId }])
     .select()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error saving listing:', error)
+    throw error
+  }
   return data
 }
 
-export async function unsaveListing(listingId: string, userId: string) {
-  const supabase = createClient()
+export async function unsaveListing(adId: string, userId: string) {
+  const supabase = await createClient()
   const { error } = await supabase
-    .from('saved_listings')
+    .from('saved_ads')
     .delete()
-    .eq('listing_id', listingId)
+    .eq('ad_id', adId)
     .eq('user_id', userId)
 
-  if (error) throw error
+  if (error) {
+    console.error('Error removing saved listing:', error)
+    throw error
+  }
 }
 
 export async function getSavedListings(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('saved_listings')
-    .select('listing_id, listings(*)')
+    .from('saved_ads')
+    .select('ad_id, ads(*)')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order('saved_at', { ascending: false })
 
-  if (error) throw error
-  return data?.map((item) => item.listings)
+  if (error) {
+    console.error('Error fetching saved listings:', error)
+    return []
+  }
+  return data?.map((item: any) => item.ads) || []
 }
 
 export async function getConversations(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('conversations')
-    .select('*, messages(count), listings(title)')
+    .select('*, messages(count), ads(title)')
     .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
-    .order('updated_at', { ascending: false })
+    .order('last_message_at', { ascending: false })
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('Error fetching conversations:', error)
+    return []
+  }
+  return data || []
 }
 
 export async function getConversationMessages(conversationId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('messages')
-    .select('*, profiles(first_name, last_name, avatar_url)')
+    .select('*, users(first_name, last_name, avatar_url)')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('Error fetching conversation messages:', error)
+    return []
+  }
+  return data || []
 }
 
 export async function sendMessage(conversationId: string, senderId: string, content: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('messages')
     .insert([
@@ -252,22 +307,25 @@ export async function sendMessage(conversationId: string, senderId: string, cont
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error sending message:', error)
+    throw error
+  }
   return data
 }
 
 export async function createOrGetConversation(
-  listingId: string,
+  adId: string,
   sellerId: string,
   buyerId: string
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Try to get existing conversation
   const { data: existing } = await supabase
     .from('conversations')
     .select('id')
-    .eq('listing_id', listingId)
+    .eq('ad_id', adId)
     .eq('seller_id', sellerId)
     .eq('buyer_id', buyerId)
     .single()
@@ -281,101 +339,109 @@ export async function createOrGetConversation(
     .from('conversations')
     .insert([
       {
-        listing_id: listingId,
+        ad_id: adId,
         seller_id: sellerId,
         buyer_id: buyerId,
+        subject: 'New inquiry',
       },
     ])
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error creating conversation:', error)
+    throw error
+  }
   return data
 }
 
 export async function getUserListings(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
-    .from('listings')
-    .select('*, listing_media(*)')
+    .from('ads')
+    .select('*, ad_images(*)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
-  if (error) throw error
-  return data
-}
-
-export async function getNotifications(userId: string, limit = 20) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-
-  if (error) throw error
-  return data
-}
-
-export async function markNotificationAsRead(notificationId: string) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('notifications')
-    .update({ is_read: true })
-    .eq('id', notificationId)
-    .select()
-
-  if (error) throw error
-  return data
-}
-
-export async function createNotification(userId: string, notification: any) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert([{ user_id: userId, ...notification }])
-    .select()
-
-  if (error) throw error
-  return data
-}
-
-export async function reportListing(reportData: any) {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('reports')
-    .insert([reportData])
-    .select()
-
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('Error fetching user listings:', error)
+    return []
+  }
+  return data || []
 }
 
 export async function getSellerRating(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('reviews')
     .select('rating')
-    .eq('seller_id', userId)
+    .eq('reviewed_user_id', userId)
 
-  if (error) throw error
+  if (error) {
+    console.error('Error fetching seller rating:', error)
+    return { average: 0, count: 0 }
+  }
 
   if (!data || data.length === 0) {
     return { average: 0, count: 0 }
   }
 
-  const average = data.reduce((sum, r) => sum + r.rating, 0) / data.length
+  const average = data.reduce((sum: number, r: any) => sum + r.rating, 0) / data.length
   return { average: Math.round(average * 10) / 10, count: data.length }
 }
 
 export async function createReview(reviewData: any) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('reviews')
     .insert([reviewData])
     .select()
+    .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error creating review:', error)
+    throw error
+  }
   return data
+}
+
+export async function reportListing(reportData: any) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('ad_reports')
+    .insert([reportData])
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error reporting listing:', error)
+    throw error
+  }
+  return data
+}
+
+export async function getAdminUsers() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('*, users(email, first_name, last_name)')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching admin users:', error)
+    return []
+  }
+  return data || []
+}
+
+export async function isUserAdmin(userId: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('id', userId)
+    .single()
+
+  if (error) return false
+  return !!data
 }
