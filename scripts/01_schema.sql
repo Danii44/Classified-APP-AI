@@ -20,6 +20,8 @@ CREATE TABLE users (
   kyc_verified BOOLEAN DEFAULT FALSE,
   avatar_url TEXT,
   bio TEXT,
+  country TEXT DEFAULT 'AE',
+  city TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

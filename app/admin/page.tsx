@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const supabase = createClient()
   const { theme } = useTheme()
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [featureFlags, setFeatureFlags] = useState<any[]>([])
   const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,27 +25,35 @@ export default function AdminDashboard() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession()
-      setUser(data.session?.user || null)
+      const sessionUser = data.session?.user
+      setUser(sessionUser || null)
       
-      if (!data.session?.user) {
+      if (!sessionUser) {
         window.location.href = '/auth/login'
         return
       }
 
       // Check if user is admin
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.session.user.id)
-        .single()
+      try {
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('id', sessionUser.id)
+          .single()
 
-      if (profileData?.role !== 'superadmin' && profileData?.role !== 'admin') {
+        if (!adminData) {
+          window.location.href = '/'
+          return
+        }
+
+        setIsAdmin(true)
+        fetchFeatureFlags()
+        fetchSubscriptionPlans()
+      } catch (error) {
+        console.error('Error checking admin status:', error)
         window.location.href = '/'
         return
       }
-
-      fetchFeatureFlags()
-      fetchSubscriptionPlans()
     }
 
     checkAuth()

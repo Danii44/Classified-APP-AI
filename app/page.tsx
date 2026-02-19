@@ -32,6 +32,7 @@ export default function HomePage() {
   const [categories, setCategories] = useState<any[]>([])
   const [countries, setCountries] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     category: '',
@@ -39,6 +40,10 @@ export default function HomePage() {
     minPrice: '',
     maxPrice: '',
   })
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -99,7 +104,8 @@ export default function HomePage() {
     }
   }
 
-  const isDark = theme === 'dark'
+  // Default to dark theme to avoid hydration mismatch
+  const isDark = mounted ? (theme === 'dark') : true
   const bgGradient = isDark 
     ? 'from-slate-950 via-blue-950 to-slate-950'
     : 'from-blue-50 via-white to-purple-50'
@@ -110,7 +116,7 @@ export default function HomePage() {
   const borderColor = isDark ? 'border-slate-700' : 'border-blue-100'
 
   return (
-    <div className={`min-h-screen transition-colors ${isDark ? 'bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'}`}>
+    <div className={`min-h-screen transition-colors bg-gradient-to-br ${bgGradient}`}>
       {/* Header/Navigation */}
       <nav className={`sticky top-0 z-50 ${navBg} backdrop-blur border-b ${borderColor} transition-colors`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -294,7 +300,7 @@ export default function HomePage() {
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="" disabled>No categories available</SelectItem>
+                      <SelectItem value="none" disabled>No categories available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
